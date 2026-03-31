@@ -1,0 +1,15 @@
+sources:
+  - name: GoogleNews_Apple
+    url: "https://news.google.com/rss/search?q=Apple+stock"
+    type: "rss"
+    company_ticker: "AAPL"
+
+  - name: GoogleNews_Tesla
+    url: "https://news.google.com/rss/search?q=Tesla+TSLA"
+    type: "rss"
+    company_ticker: "TSLA"
+
+  - name: FinanceYahoo_Apple
+    url: "https://finance.yahoo.com/rss/headline?s=aapl"
+    type: "rss"
+    company_ticker: "AAPL"

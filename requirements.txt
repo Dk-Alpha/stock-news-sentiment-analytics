@@ -1,0 +1,13 @@
+fastapi==0.110.0
+uvicorn==0.29.0
+feedparser==6.0.11
+aiokafka==0.10.0
+kafka-python==2.0.2
+PyYAML==6.0.1
+aiohttp==3.9.3
+psycopg2-binary==2.9.9
+SQLAlchemy==2.0.29
+python-dotenv==1.0.1
+pydantic==2.6.4
+requests==2.31.0
+customtkinter==5.2.2
