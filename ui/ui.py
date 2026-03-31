@@ -6,14 +6,21 @@ import yaml
 import threading
 import time
 import json
+import os
+from pathlib import Path
 from datetime import datetime
+from dotenv import load_dotenv
 
 # ─── Theme ────────────────────────────────────────────────────────────────────
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
-API_BASE = "http://localhost:8000"
-SOURCES_FILE = "sources.yaml"
+# Load .env from the ui/ directory
+load_dotenv(dotenv_path=Path(__file__).parent / ".env")
+
+API_BASE = os.getenv("API_BASE_URL", "http://localhost:8000")
+# sources.yaml lives in the pipeline/ sibling directory
+SOURCES_FILE = Path(__file__).parent.parent / "pipeline" / "sources.yaml"
 
 SENTIMENT_COLOR = {
     "positive": "#22c55e",
