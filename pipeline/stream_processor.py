@@ -3,13 +3,14 @@ import json
 import re
 import logging
 import asyncio
+from pathlib import Path
 from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 from dotenv import load_dotenv
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - [%(levelname)s] - %(message)s")
 logger = logging.getLogger(__name__)
 
-load_dotenv()
+load_dotenv(dotenv_path=Path(__file__).parent / ".env")
 KAFKA_BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 RAW_NEWS_TOPIC = "raw-news"
 PROCESSED_NEWS_TOPIC = "processed-news"

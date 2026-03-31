@@ -1,10 +1,13 @@
 import os
 import logging
 import psycopg2
+from pathlib import Path
 from dotenv import load_dotenv
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - [%(levelname)s] - %(message)s")
 logger = logging.getLogger(__name__)
+
+load_dotenv(dotenv_path=Path(__file__).parent / ".env")
 
 def get_db_connection():
     load_dotenv()

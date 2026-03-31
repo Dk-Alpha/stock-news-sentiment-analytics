@@ -6,6 +6,7 @@ import json
 import hashlib
 import os
 import logging
+from pathlib import Path
 from datetime import datetime, timezone
 from aiokafka import AIOKafkaProducer
 from dotenv import load_dotenv
@@ -14,19 +15,21 @@ from dotenv import load_dotenv
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - [%(levelname)s] - %(message)s")
 logger = logging.getLogger(__name__)
 
-# Load Environment and Config
-load_dotenv()
+# Resolve paths relative to this file's directory
+BASE_DIR = Path(__file__).parent
+load_dotenv(dotenv_path=BASE_DIR / ".env")
 KAFKA_BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 POLL_INTERVAL = int(os.getenv("POLL_INTERVAL_SECONDS", 60))
 RAW_NEWS_TOPIC = "raw-news"
 
 def load_sources():
+    sources_path = BASE_DIR / "sources.yaml"
     try:
-        with open("sources.yaml", "r") as f:
+        with open(sources_path, "r") as f:
             config = yaml.safe_load(f)
             return config.get("sources", [])
     except Exception as e:
-        logger.error(f"Failed to load sources.yaml: {e}")
+        logger.error(f"Failed to load {sources_path}: {e}")
         return []
 
 def generate_hash(title, link, published):

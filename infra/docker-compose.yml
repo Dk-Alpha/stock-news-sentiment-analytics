@@ -1,31 +1,39 @@
 version: "3.8"
 
+# NOTE: Ollama runs natively on your Windows host (for GPU/CPU access).
+# Install from: https://ollama.com/download
+# Then run: ollama pull llama3:8b
+# The pipeline connects to it at http://localhost:11434 (default)
+
 services:
   zookeeper:
-    image: bitnami/zookeeper:latest
+    image: zookeeper:3.9
     container_name: zookeeper
     environment:
-      - ALLOW_ANONYMOUS_LOGIN=yes
+      ZOO_MY_ID: 1
+      ZOO_PORT: 2181
     ports:
       - "2181:2181"
     networks:
       - pipeline_net
 
   kafka:
-    image: bitnami/kafka:latest
+    image: wurstmeister/kafka:2.13-2.8.1
     container_name: kafka
     depends_on:
       - zookeeper
-    environment:
-      - KAFKA_BROKER_ID=1
-      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
-      - ALLOW_PLAINTEXT_LISTENER=yes
-      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,EXTERNAL://:9093
-      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://localhost:9093
-      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
     ports:
       - "9092:9092"
       - "9093:9093"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_RETENTION_HOURS: 12
     networks:
       - pipeline_net
 
@@ -33,9 +41,9 @@ services:
     image: postgres:15
     container_name: postgres
     environment:
-      - POSTGRES_USER=pipeline_user
-      - POSTGRES_PASSWORD=pipeline_pass
-      - POSTGRES_DB=news_pipeline
+      POSTGRES_USER: pipeline_user
+      POSTGRES_PASSWORD: pipeline_pass
+      POSTGRES_DB: news_pipeline
     ports:
       - "5432:5432"
     volumes:
@@ -43,28 +51,8 @@ services:
     networks:
       - pipeline_net
 
-  ollama:
-    image: ollama/ollama:latest
-    container_name: ollama
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_models:/root/.ollama
-    # Uncomment the following to enable GPU
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: 1
-    #           capabilities: [gpu]
-    networks:
-      - pipeline_net
-
 volumes:
   pgdata:
-    driver: local
-  ollama_models:
     driver: local
 
 networks:

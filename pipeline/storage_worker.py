@@ -3,13 +3,14 @@ import json
 import logging
 import asyncio
 import psycopg2
+from pathlib import Path
 from aiokafka import AIOKafkaConsumer
 from dotenv import load_dotenv
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - [%(levelname)s] - %(message)s")
 logger = logging.getLogger(__name__)
 
-load_dotenv()
+load_dotenv(dotenv_path=Path(__file__).parent / ".env")
 KAFKA_BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
 POSTGRES_DB = os.getenv("POSTGRES_DB", "news_pipeline")

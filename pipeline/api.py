@@ -1,5 +1,6 @@
 import os
 import logging
+from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -12,7 +13,7 @@ import asyncio
 import json
 import time
 
-load_dotenv()
+load_dotenv(dotenv_path=Path(__file__).parent / ".env")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - [%(levelname)s] - %(message)s")
 logger = logging.getLogger(__name__)
 

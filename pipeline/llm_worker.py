@@ -3,6 +3,7 @@ import json
 import logging
 import asyncio
 import aiohttp
+from pathlib import Path
 from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 from dotenv import load_dotenv
 from datetime import datetime, timezone
@@ -10,7 +11,7 @@ from datetime import datetime, timezone
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - [%(levelname)s] - %(message)s")
 logger = logging.getLogger(__name__)
 
-load_dotenv()
+load_dotenv(dotenv_path=Path(__file__).parent / ".env")
 KAFKA_BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 LLM_MODEL = os.getenv("LLM_MODEL", "llama3:8b")
