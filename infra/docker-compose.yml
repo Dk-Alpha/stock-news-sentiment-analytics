@@ -1,9 +1,9 @@
 version: "3.8"
 
 # NOTE: Ollama runs natively on your Windows host (for GPU/CPU access).
-# Install from: https://ollama.com/download
-# Then run: ollama pull llama3:8b
-# The pipeline connects to it at http://localhost:11434 (default)
+# Postgres also runs natively - no need to run it in Docker.
+# The pipeline connects to Ollama at http://localhost:11434 (default)
+# and Postgres at localhost:5432
 
 services:
   zookeeper:
@@ -36,24 +36,6 @@ services:
       KAFKA_LOG_RETENTION_HOURS: 12
     networks:
       - pipeline_net
-
-  postgres:
-    image: postgres:15
-    container_name: postgres
-    environment:
-      POSTGRES_USER: pipeline_user
-      POSTGRES_PASSWORD: pipeline_pass
-      POSTGRES_DB: news_pipeline
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    networks:
-      - pipeline_net
-
-volumes:
-  pgdata:
-    driver: local
 
 networks:
   pipeline_net:
