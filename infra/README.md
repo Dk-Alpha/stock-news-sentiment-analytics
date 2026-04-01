@@ -18,7 +18,7 @@ This directory manages Docker-based infrastructure.
 docker-compose up -d
 
 # Pull your chosen LLM (first time only)
-docker exec -it ollama ollama pull llama3:8b
+docker exec -it ollama ollama pull llama3.2:latest
 ```
 
 ## Safe Shutdown (with DB backup)

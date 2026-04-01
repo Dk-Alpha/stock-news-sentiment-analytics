@@ -6,6 +6,18 @@ version: "3.8"
 # and Postgres at localhost:5432
 
 services:
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_USER: pipeline_user
+      POSTGRES_PASSWORD: CHANGE_ME
+      POSTGRES_DB: news_pipeline
+    ports:
+      - "5432:5432"
+    networks:
+      - pipeline_net
+
   zookeeper:
     image: zookeeper:3.9
     container_name: zookeeper

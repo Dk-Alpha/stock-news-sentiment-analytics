@@ -7,7 +7,9 @@ from pathlib import Path
 from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 from dotenv import load_dotenv
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - [%(levelname)s] - %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - [%(levelname)s] - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 load_dotenv(dotenv_path=Path(__file__).parent / ".env")
@@ -15,11 +17,13 @@ KAFKA_BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 RAW_NEWS_TOPIC = "raw-news"
 PROCESSED_NEWS_TOPIC = "processed-news"
 
+
 def clean_text(text: str) -> str:
     """Remove HTML tags, extra whitespace, and normalize the text."""
     text = re.sub(r"<[^>]+>", " ", text)
     text = re.sub(r"\s+", " ", text).strip()
     return text
+
 
 async def process_and_forward():
     consumer = AIOKafkaConsumer(
@@ -60,11 +64,14 @@ async def process_and_forward():
             }
 
             await producer.send_and_wait(PROCESSED_NEWS_TOPIC, processed)
-            logger.info(f"Forwarded [{raw['company_ticker']}] → processed-news: {cleaned_title[:80]}")
+            logger.info(
+                f"Forwarded [{raw['company_ticker']}] → processed-news: {cleaned_title[:80]}"
+            )
 
     finally:
         await consumer.stop()
         await producer.stop()
+
 
 if __name__ == "__main__":
     try:

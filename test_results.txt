@@ -1,0 +1,106 @@
+=== MYPY ===
+pipeline\stream_processor.py:7: error: Skipping analyzing "aiokafka": module is installed, but missing library stubs or py.typed marker  [import-untyped]
+pipeline\storage_worker.py:5: error: Library stubs not installed for "psycopg2"  [import-untyped]
+pipeline\storage_worker.py:7: error: Skipping analyzing "aiokafka": module is installed, but missing library stubs or py.typed marker  [import-untyped]
+pipeline\llm_worker.py:7: error: Skipping analyzing "aiokafka": module is installed, but missing library stubs or py.typed marker  [import-untyped]
+pipeline\ingester.py:3: error: Skipping analyzing "feedparser": module is installed, but missing library stubs or py.typed marker  [import-untyped]
+pipeline\ingester.py:4: error: Library stubs not installed for "yaml"  [import-untyped]
+pipeline\ingester.py:4: note: Hint: "python3 -m pip install types-PyYAML"
+pipeline\ingester.py:11: error: Skipping analyzing "aiokafka": module is installed, but missing library stubs or py.typed marker  [import-untyped]
+pipeline\api.py:8: error: Library stubs not installed for "psycopg2"  [import-untyped]
+pipeline\api.py:9: error: Library stubs not installed for "psycopg2.extras"  [import-untyped]
+pipeline\api.py:9: note: Hint: "python3 -m pip install types-psycopg2"
+pipeline\api.py:9: note: (or run "mypy --install-types" to install all missing stub packages)
+pipeline\api.py:9: note: See https://mypy.readthedocs.io/en/stable/running_mypy.html#missing-imports
+pipeline\api.py:76: error: Argument 1 to "append" of "list" has incompatible type "int"; expected "str"  [arg-type]
+Found 10 errors in 5 files (checked 5 source files)
+
+=== FLAKE8 ===
+pipeline/api.py:14:1: F401 'time' imported but unused
+pipeline/api.py:17:80: E501 line too long (93 > 79 characters)
+pipeline/api.py:30:1: E302 expected 2 blank lines, found 1
+pipeline/api.py:41:1: E302 expected 2 blank lines, found 1
+pipeline/api.py:46:1: E302 expected 2 blank lines, found 1
+pipeline/api.py:48:80: E501 line too long (94 > 79 characters)
+pipeline/api.py:56:1: E302 expected 2 blank lines, found 1
+pipeline/api.py:57:80: E501 line too long (94 > 79 characters)
+pipeline/api.py:64:80: E501 line too long (84 > 79 characters)
+pipeline/api.py:88:1: E302 expected 2 blank lines, found 1
+pipeline/api.py:97:80: E501 line too long (87 > 79 characters)
+pipeline/api.py:98:80: E501 line too long (87 > 79 characters)
+pipeline/api.py:99:80: E501 line too long (86 > 79 characters)
+pipeline/api.py:120:1: E302 expected 2 blank lines, found 1
+pipeline/api.py:128:80: E501 line too long (83 > 79 characters)
+pipeline/api.py:130:80: E501 line too long (99 > 79 characters)
+pipeline/api.py:156:1: E302 expected 2 blank lines, found 1
+pipeline/api.py:173:1: E305 expected 2 blank lines after class or function definition, found 1
+pipeline/ingester.py:15:80: E501 line too long (93 > 79 characters)
+pipeline/ingester.py:25:1: E302 expected 2 blank lines, found 1
+pipeline/ingester.py:35:1: E302 expected 2 blank lines, found 1
+pipeline/ingester.py:41:1: E302 expected 2 blank lines, found 1
+pipeline/ingester.py:46:80: E501 line too long (96 > 79 characters)
+pipeline/ingester.py:47:80: E501 line too long (86 > 79 characters)
+pipeline/ingester.py:56:1: E302 expected 2 blank lines, found 1
+pipeline/ingester.py:67:80: E501 line too long (82 > 79 characters)
+pipeline/ingester.py:70:1: W293 blank line contains whitespace
+pipeline/ingester.py:73:1: W293 blank line contains whitespace
+pipeline/ingester.py:89:80: E501 line too long (96 > 79 characters)
+pipeline/ingester.py:92:1: W293 blank line contains whitespace
+pipeline/ingester.py:94:80: E501 line too long (86 > 79 characters)
+pipeline/ingester.py:98:80: E501 line too long (85 > 79 characters)
+pipeline/ingester.py:99:1: W293 blank line contains whitespace
+pipeline/ingester.py:107:1: W293 blank line contains whitespace
+pipeline/ingester.py:118:1: W293 blank line contains whitespace
+pipeline/ingester.py:119:80: E501 line too long (110 > 79 characters)
+pipeline/ingester.py:121:1: W293 blank line contains whitespace
+pipeline/llm_worker.py:11:80: E501 line too long (93 > 79 characters)
+pipeline/llm_worker.py:32:80: E501 line too long (106 > 79 characters)
+pipeline/llm_worker.py:41:80: E501 line too long (125 > 79 characters)
+pipeline/llm_worker.py:42:80: E501 line too long (125 > 79 characters)
+pipeline/llm_worker.py:47:1: E302 expected 2 blank lines, found 1
+pipeline/llm_worker.py:50:80: E501 line too long (108 > 79 characters)
+pipeline/llm_worker.py:53:1: E302 expected 2 blank lines, found 1
+pipeline/llm_worker.py:63:80: E501 line too long (113 > 79 characters)
+pipeline/llm_worker.py:69:1: E302 expected 2 blank lines, found 1
+pipeline/llm_worker.py:70:17: E701 multiple statements on one line (colon)
+pipeline/llm_worker.py:78:80: E501 line too long (96 > 79 characters)
+pipeline/llm_worker.py:80:80: E501 line too long (93 > 79 characters)
+pipeline/llm_worker.py:82:80: E501 line too long (83 > 79 characters)
+pipeline/llm_worker.py:83:80: E501 line too long (82 > 79 characters)
+pipeline/llm_worker.py:87:80: E501 line too long (94 > 79 characters)
+pipeline/llm_worker.py:92:80: E501 line too long (125 > 79 characters)
+pipeline/llm_worker.py:93:1: W293 blank line contains whitespace
+pipeline/llm_worker.py:95:80: E501 line too long (82 > 79 characters)
+pipeline/llm_worker.py:97:80: E501 line too long (86 > 79 characters)
+pipeline/llm_worker.py:113:74: E261 at least two spaces before inline comment
+pipeline/llm_worker.py:113:80: E501 line too long (91 > 79 characters)
+pipeline/llm_worker.py:116:80: E501 line too long (126 > 79 characters)
+pipeline/llm_worker.py:117:1: W293 blank line contains whitespace
+pipeline/llm_worker.py:120:80: E501 line too long (112 > 79 characters)
+pipeline/llm_worker.py:121:1: W293 blank line contains whitespace
+pipeline/llm_worker.py:125:80: E501 line too long (105 > 79 characters)
+pipeline/llm_worker.py:127:80: E501 line too long (94 > 79 characters)
+pipeline/llm_worker.py:129:80: E501 line too long (85 > 79 characters)
+pipeline/llm_worker.py:137:80: E501 line too long (85 > 79 characters)
+pipeline/llm_worker.py:147:80: E501 line too long (98 > 79 characters)
+pipeline/llm_worker.py:151:1: E302 expected 2 blank lines, found 1
+pipeline/llm_worker.py:157:80: E501 line too long (80 > 79 characters)
+pipeline/llm_worker.py:164:80: E501 line too long (128 > 79 characters)
+pipeline/llm_worker.py:173:80: E501 line too long (85 > 79 characters)
+pipeline/llm_worker.py:188:80: E501 line too long (85 > 79 characters)
+pipeline/llm_worker.py:191:80: E501 line too long (87 > 79 characters)
+pipeline/llm_worker.py:192:80: E501 line too long (80 > 79 characters)
+pipeline/storage_worker.py:10:80: E501 line too long (93 > 79 characters)
+pipeline/storage_worker.py:24:1: E302 expected 2 blank lines, found 1
+pipeline/storage_worker.py:33:1: E302 expected 2 blank lines, found 1
+pipeline/storage_worker.py:37:80: E501 line too long (112 > 79 characters)
+pipeline/storage_worker.py:56:1: E302 expected 2 blank lines, found 1
+pipeline/storage_worker.py:76:1: E302 expected 2 blank lines, found 1
+pipeline/storage_worker.py:84:1: W293 blank line contains whitespace
+pipeline/storage_worker.py:86:80: E501 line too long (81 > 79 characters)
+pipeline/storage_worker.py:89:80: E501 line too long (82 > 79 characters)
+pipeline/storage_worker.py:90:80: E501 line too long (97 > 79 characters)
+pipeline/stream_processor.py:10:80: E501 line too long (93 > 79 characters)
+pipeline/stream_processor.py:18:1: E302 expected 2 blank lines, found 1
+pipeline/stream_processor.py:24:1: E302 expected 2 blank lines, found 1
+pipeline/stream_processor.py:63:80: E501 line too long (102 > 79 characters)

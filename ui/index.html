@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live News Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne+Mono&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0b0f0e; --paper:#f0ece3; --cream:#e8e2d5;
+  --rust:#c94a2b; --forest:#1a3d2b; --gold:#d4a017;
+  --slate:#3a4a45; --mist:#b8b0a0;
+  --up:#1a7a4a; --down:#c94a2b; --hold:#8a7a2b;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--ink);color:var(--paper);font-family:'Syne',sans-serif;padding:24px;}
+.mono{font-family:'Syne Mono',monospace;}
+
+header{display:flex;justify-content:space-between;align-items:flex-start;
+  border-bottom:2px solid var(--slate);padding-bottom:18px;margin-bottom:24px;}
+.ticker{font-family:'Syne Mono',monospace;font-size:40px;color:var(--paper);
+  letter-spacing:-2px;border-right:3px solid var(--rust);padding-right:14px;}
+.sub{font-size:11px;color:var(--mist);letter-spacing:3px;text-transform:uppercase;margin-top:4px;}
+.live{display:inline-flex;align-items:center;gap:6px;font-family:'Syne Mono',monospace;
+  font-size:11px;color:var(--up);border:1px solid var(--up);padding:4px 10px;border-radius:2px;}
+.dot{width:7px;height:7px;background:var(--up);border-radius:50%;
+  animation:pulse 1.4s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* status bar */
+.statusbar{background:rgba(255,255,255,0.03);border:1px solid var(--slate);
+  border-radius:3px;padding:10px 16px;margin-bottom:20px;
+  font-family:'Syne Mono',monospace;font-size:12px;color:var(--mist);
+  display:flex;gap:24px;align-items:center;}
+.statusbar span{color:var(--paper);}
+#statusDot{width:8px;height:8px;border-radius:50%;background:var(--mist);
+  display:inline-block;margin-right:6px;}
+#statusDot.ok{background:var(--up);}
+#statusDot.offline{background:var(--down);}
+
+.grid4{display:grid;grid-template-columns:1.8fr 1fr 1fr 1fr;gap:14px;margin-bottom:14px;}
+.grid2{display:grid;grid-template-columns:2fr 1.2fr;gap:14px;margin-bottom:14px;}
+.grid2b{display:grid;grid-template-columns:1.4fr 1fr;gap:14px;}
+
+.card{background:rgba(255,255,255,0.03);border:1px solid var(--slate);
+  border-radius:3px;padding:20px;transition:border-color 0.5s;}
+.lbl{font-size:9px;text-transform:uppercase;letter-spacing:3px;
+  color:var(--mist);font-family:'Syne Mono',monospace;margin-bottom:12px;}
+
+/* direction */
+.dir-card{border-width:2px;}
+.dir-card.positive{border-color:var(--up);}
+.dir-card.negative{border-color:var(--down);}
+.dir-card.neutral{border-color:var(--hold);}
+.dir-card.pending{border-color:var(--slate);}
+.dir-arrow{font-size:64px;font-family:'Syne Mono',monospace;line-height:1;}
+.dir-text{font-size:36px;font-weight:800;letter-spacing:-2px;}
+.dir-conf{font-size:12px;color:var(--mist);font-family:'Syne Mono',monospace;margin-top:6px;}
+
+.positive .dir-arrow,.positive .dir-text{color:var(--up);}
+.negative .dir-arrow,.negative .dir-text{color:var(--down);}
+.neutral .dir-arrow,.neutral .dir-text{color:var(--hold);}
+.pending .dir-arrow,.pending .dir-text{color:var(--mist);}
+
+/* signal */
+.sig-wrap{display:flex;flex-direction:column;align-items:center;
+  justify-content:center;min-height:110px;gap:8px;}
+.sig-icon{font-size:44px;}
+.sig-text{font-family:'Syne Mono',monospace;font-size:26px;letter-spacing:4px;}
+.sig-positive .sig-text,.sig-positive .sig-icon{color:var(--up);}
+.sig-negative .sig-text,.sig-negative .sig-icon{color:var(--down);}
+.sig-neutral .sig-text,.sig-neutral .sig-icon{color:var(--hold);}
+.sig-pending .sig-text,.sig-pending .sig-icon{color:var(--mist);}
+
+.big{font-family:'Syne Mono',monospace;font-size:34px;}
+.bigGold{font-family:'Syne Mono',monospace;font-size:30px;color:var(--gold);}
+.small{font-size:11px;color:var(--mist);font-family:'Syne Mono',monospace;margin-top:5px;}
+.pos{color:var(--up);} .neg{color:var(--down);} .neu{color:var(--mist);}
+
+/* sentiment */
+.sent-val{font-family:'Syne Mono',monospace;font-size:26px;}
+.sent-track{position:relative;height:5px;margin:14px 0 6px;
+  background:linear-gradient(to right,var(--down),var(--slate) 45%,var(--slate) 55%,var(--up));
+  border-radius:3px;}
+.sent-thumb{position:absolute;top:-5px;width:15px;height:15px;background:var(--paper);
+  border-radius:50%;transform:translateX(-50%);
+  box-shadow:0 0 10px rgba(240,236,227,.5);transition:left .8s cubic-bezier(.34,1.56,.64,1);}
+.sent-labels{display:flex;justify-content:space-between;
+  font-size:9px;color:var(--mist);font-family:'Syne Mono',monospace;}
+
+/* prob bars */
+.prob-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.prob-lbl{width:36px;font-family:'Syne Mono',monospace;font-size:10px;}
+.prob-track{flex:1;height:5px;background:var(--slate);border-radius:3px;overflow:hidden;}
+.prob-fill{height:100%;border-radius:3px;transition:width .9s ease;}
+.fill-up{background:var(--up);} .fill-hold{background:var(--hold);} .fill-down{background:var(--down);}
+.prob-pct{width:38px;text-align:right;font-family:'Syne Mono',monospace;font-size:10px;color:var(--mist);}
+
+/* tech grid */
+.tech-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.tech-item{background:rgba(255,255,255,.02);border:1px solid rgba(58,74,69,.5);
+  border-radius:2px;padding:9px 12px;}
+.tech-lbl{font-size:9px;color:var(--mist);letter-spacing:2px;text-transform:uppercase;
+  font-family:'Syne Mono',monospace;margin-bottom:3px;}
+.tech-val{font-family:'Syne Mono',monospace;font-size:15px;}
+
+/* news */
+.news-scroll{max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;}
+.news-item{padding:10px;border:1px solid rgba(58,74,69,.5);border-radius:2px;
+  border-left:3px solid var(--slate);font-size:13px;line-height:1.5;}
+.news-item.positive{border-left-color:var(--up);}
+.news-item.negative{border-left-color:var(--down);}
+.news-item.neutral{border-left-color:var(--hold);}
+.news-item.pending{border-left-color:var(--slate);}
+.news-src{font-size:9px;letter-spacing:2px;color:var(--mist);font-family:'Syne Mono',monospace;
+  text-transform:uppercase;margin-bottom:4px;display:flex;justify-content:space-between;}
+
+/* history */
+.hist-scroll{max-height:260px;overflow-y:auto;}
+.htable{width:100%;border-collapse:collapse;font-family:'Syne Mono',monospace;font-size:11px;}
+.htable th{text-align:left;padding:7px 9px;color:var(--mist);font-size:9px;letter-spacing:2px;
+  border-bottom:1px solid var(--slate);font-weight:400;}
+.htable td{padding:6px 9px;border-bottom:1px solid rgba(58,74,69,.3);}
+
+/* tape */
+.tape{overflow:hidden;border-top:1px solid var(--slate);border-bottom:1px solid var(--slate);
+  padding:6px 0;margin-bottom:22px;font-family:'Syne Mono',monospace;font-size:11px;color:var(--mist);}
+.tape-inner{white-space:nowrap;animation:scroll 45s linear infinite;display:inline-block;}
+@keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+.bar-bg{height:4px;background:var(--slate);border-radius:2px;margin-top:10px;}
+.bar-fill{height:4px;background:var(--gold);border-radius:2px;transition:width 1s ease;}
+
+footer{margin-top:22px;padding-top:14px;border-top:1px solid var(--slate);
+  display:flex;justify-content:space-between;font-size:10px;
+  color:var(--mist);font-family:'Syne Mono',monospace;}
+
+.card{animation:fadeUp .4s ease both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div style="max-width:1400px;margin:0 auto;">
+
+<header>
+  <div style="display:flex;align-items:baseline;gap:14px;">
+    <div class="ticker" id="headerTicker">GLOBAL</div>
+    <div>
+      <div class="sub">AI News Sentiment Engine</div>
+      <div class="sub" id="headerSub">All Monitored Sources</div>
+    </div>
+  </div>
+  <div style="text-align:right;">
+    <div class="live"><div class="dot" id="liveDot"></div>LIVE PIPELINE</div>
+    <div id="lastUpdate" style="font-size:10px;color:var(--mist);font-family:'Syne Mono',monospace;margin-top:6px;">Connecting...</div>
+  </div>
+</header>
+
+<div class="statusbar" id="statusBar">
+  <span><span id="statusDot"></span>API Status:</span>
+  <span id="statusMsg">Connecting to Kafka Stream...</span>
+  <span>News Items Today: <span id="statusTotal">0</span></span>
+  <span>Latest Signal: <span id="statusDir">—</span></span>
+  <span>Ticker: <select id="tickerSelect" style="background:#1a3d2b;color:#f0ece3;border:1px solid #3a4a45;padding:2px 6px;border-radius:2px;outline:none;font-family:'Syne Mono',monospace;"></select></span>
+  <span>Sentiment: <select id="sentSelect" style="background:#1a3d2b;color:#f0ece3;border:1px solid #3a4a45;padding:2px 6px;border-radius:2px;outline:none;font-family:'Syne Mono',monospace;">
+    <option value="ALL">ALL SENTIMENTS</option>
+    <option value="positive">BULLISH</option>
+    <option value="negative">BEARISH</option>
+    <option value="neutral">NEUTRAL</option>
+  </select></span>
+</div>
+
+<div class="tape"><div class="tape-inner" id="tapeInner">
+  AWAITING AI INFERENCES · AWAITING AI INFERENCES · AWAITING AI INFERENCES · AWAITING AI INFERENCES ·
+</div></div>
+
+<div class="grid4">
+  <!-- Direction -->
+  <div class="card dir-card pending" id="dirCard">
+    <div class="lbl">Latest News Sentiment</div>
+    <div class="pending" id="dirWrap" style="display:flex;align-items:center;gap:16px;margin-top:4px;">
+      <div class="dir-arrow" id="dirArrow">─</div>
+      <div>
+        <div class="dir-text" id="dirText">PENDING</div>
+        <div class="dir-conf" id="dirConf">Confidence: —</div>
+      </div>
+    </div>
+  </div>
+  <!-- Signal -->
+  <div class="card">
+    <div class="lbl">Implied Signal</div>
+    <div class="sig-wrap sig-pending" id="sigWrap">
+      <div class="sig-icon" id="sigIcon">◈</div>
+      <div class="sig-text" id="sigText">HOLD</div>
+    </div>
+  </div>
+  <!-- Article Count -->
+  <div class="card">
+    <div class="lbl">Today's Pipeline</div>
+    <div class="big" id="totalCount">0</div>
+    <div class="small neu" id="tickerSubtitle">Articles Ingested</div>
+    <div style="margin-top:14px;"><div class="lbl" style="margin-bottom:3px">Avg Confidence</div>
+    <div class="big" id="avgConf" style="font-size:22px;">—</div></div>
+  </div>
+  <!-- Distribution -->
+  <div class="card">
+    <div class="lbl">Positivity Index</div>
+    <div class="bigGold" id="posIndex">0%</div>
+    <div class="small neu">of classified news</div>
+    <div class="bar-bg"><div class="bar-fill" id="posBar" style="width:0%"></div></div>
+    <div class="small" id="negCountLabel" style="margin-top:5px;">Negative: 0</div>
+  </div>
+</div>
+
+<div class="grid2">
+  <div class="card">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+      <!-- Sentiment -->
+      <div>
+        <div class="lbl">Global Sentiment Gauge</div>
+        <div class="sent-val neu" id="sentVal">0.0</div>
+        <div class="sent-track"><div class="sent-thumb" id="sentThumb" style="left:50%"></div></div>
+        <div class="sent-labels"><span>EXTREME FEAR</span><span>NEUTRAL</span><span>EXTREME GREED</span></div>
+        <div style="margin-top:12px;font-size:11px;color:var(--mist);font-family:'Syne Mono',monospace;" id="newsCountLabel">0 news items analyzed</div>
+      </div>
+      <!-- Probs -->
+      <div>
+        <div class="lbl">Sentiment Breakdown</div>
+        <div style="margin-top:8px;">
+          <div class="prob-row">
+            <div class="prob-lbl" style="color:var(--up)">BULL</div>
+            <div class="prob-track"><div class="prob-fill fill-up" id="probUp" style="width:0%"></div></div>
+            <div class="prob-pct" id="pctUp">0%</div>
+          </div>
+          <div class="prob-row">
+            <div class="prob-lbl" style="color:var(--hold)">NEUT</div>
+            <div class="prob-track"><div class="prob-fill fill-hold" id="probHold" style="width:0%"></div></div>
+            <div class="prob-pct" id="pctHold">0%</div>
+          </div>
+          <div class="prob-row">
+            <div class="prob-lbl" style="color:var(--down)">BEAR</div>
+            <div class="prob-track"><div class="prob-fill fill-down" id="probDown" style="width:0%"></div></div>
+            <div class="prob-pct" id="pctDown">0%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Technicals / Ticker Stats -->
+  <div class="card">
+    <div class="lbl">Pipeline Statistics</div>
+    <div class="tech-grid" style="margin-top:8px;">
+      <div class="tech-item"><div class="tech-lbl">Total Positive</div><div class="tech-val pos" id="st-pos">0</div></div>
+      <div class="tech-item"><div class="tech-lbl">Total Negative</div><div class="tech-val neg" id="st-neg">0</div></div>
+      <div class="tech-item"><div class="tech-lbl">Total Neutral</div><div class="tech-val neu" id="st-neu">0</div></div>
+      <div class="tech-item"><div class="tech-lbl">Pending Inference</div><div class="tech-val neu" id="st-pen">0</div></div>
+      <div class="tech-item"><div class="tech-lbl">Tracked Tickers</div><div class="tech-val" id="st-tic">0</div></div>
+      <div class="tech-item"><div class="tech-lbl">Dominant Trend</div><div class="tech-val" id="st-dom">—</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="grid2b">
+  <div class="card">
+    <div class="lbl" style="margin-bottom:10px;">Live Breaking News</div>
+    <div class="news-scroll" id="newsFeed">
+      <div style="color:var(--mist);font-size:12px;font-family:'Syne Mono',monospace;">Waiting for news ingestion...</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="lbl" style="margin-bottom:10px;">Inference History</div>
+    <div class="hist-scroll">
+      <table class="htable">
+        <thead><tr><th>Time</th><th>Ticker</th><th>Sentiment</th><th>Conf</th><th>Source</th></tr></thead>
+        <tbody id="histBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <span>LLM: LLaMA 3.2 latest · Native Event-Driven Pipeline</span>
+  <span id="footerTs">—</span>
+  <span>Connected directly to Kafka Stream</span>
+</footer>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let histData = [];
+let allNewsCache = [];
+let tickerSelect = $('tickerSelect');
+let sentSelect = $('sentSelect');
+let currentFilter = 'ALL';
+let currentSentFilter = 'ALL';
+
+// --- Formatters ---
+function arrow(d){ return d==='positive'?'▲':d==='negative'?'▼':'─'; }
+function sigIcon(s){ return s==='positive'?'▲':s==='negative'?'▼':'◈'; }
+function sigClass(s){ return s==='positive'?'sig-positive':s==='negative'?'sig-negative':'sig-neutral'; }
+function dirText(d){ return d==='positive'?'BULLISH':d==='negative'?'BEARISH':'NEUTRAL'; }
+function sigText(d){ return d==='positive'?'BUY':d==='negative'?'SELL':'HOLD'; }
+
+// --- Initialization ---
+function init() {
+    tickerSelect.innerHTML = '<option value="ALL">ALL TICKERS</option>';
+    tickerSelect.addEventListener('change', (e) => {
+        currentFilter = e.target.value;
+        $('headerTicker').textContent = currentFilter === 'ALL' ? 'GLOBAL' : currentFilter;
+        fetchSummary();
+        renderNews();
+    });
+    sentSelect.addEventListener('change', (e) => {
+        currentSentFilter = e.target.value;
+        renderNews();
+        fetchSummary();
+    });
+    fetchTickers();
+    fetchSummary();
+    fetchNewsHistory();
+    setupSSE();
+    setInterval(fetchTickers, 30000);
+    setInterval(fetchSummary, 60000); // 1m poll for full summary diffs
+}
+
+function updateStatus(isOnline) {
+    $('statusDot').className = isOnline ? 'ok' : 'offline';
+    $('liveDot').style.background = isOnline ? 'var(--up)' : 'var(--down)';
+    $('statusMsg').textContent = isOnline ? 'Connected to Pipeline ✓' : 'API Unreachable...';
+    $('lastUpdate').textContent = 'Live • ' + new Date().toLocaleTimeString();
+    $('footerTs').textContent = new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString();
+}
+
+function fetchTickers() {
+    fetch('/tickers')
+        .then(r => r.json())
+        .then(data => {
+            $('st-tic').textContent = data.length;
+            const existing = Array.from(tickerSelect.options).map(o => o.value);
+            data.forEach(t => {
+                if(!existing.includes(t)) {
+                    let opt = document.createElement('option');
+                    opt.value = t; opt.textContent = t;
+                    tickerSelect.appendChild(opt);
+                }
+            });
+        }).catch(err => console.error(err));
+}
+
+function fetchSummary() {
+    const url = currentFilter === 'ALL' ? '/news/summary' : `/news/summary?ticker=${currentFilter}`;
+    fetch(url)
+        .then(r => {
+            if(r.ok) { updateStatus(true); return r.json(); }
+            throw new Error('API Error');
+        })
+        .then(data => {
+            let sum_total = 0, sum_pos = 0, sum_neg = 0, sum_neu = 0;
+            let sum_conf = 0;
+            data.forEach(d => {
+                sum_total += d.total; sum_pos += d.positive; sum_neg += d.negative; sum_neu += d.neutral;
+                sum_conf += (d.avg_confidence * d.total);
+            });
+            let avg_conf = sum_total > 0 ? (sum_conf / sum_total) : 0;
+            
+            // Mask summary parameters dynamically depending on Sentiment Filter UI
+            if (currentSentFilter === 'positive') { sum_neg = 0; sum_neu = 0; sum_total = sum_pos; }
+            if (currentSentFilter === 'negative') { sum_pos = 0; sum_neu = 0; sum_total = sum_neg; }
+            if (currentSentFilter === 'neutral') { sum_pos = 0; sum_neg = 0; sum_total = sum_neu; }
+
+            const pending = allNewsCache.filter(n => (!n.sentiment && n.company_ticker === currentFilter) || (!n.sentiment && currentFilter === 'ALL')).length;
+
+            updateScoreboard(sum_total, sum_pos, sum_neg, sum_neu, pending, avg_conf);
+        }).catch(() => updateStatus(false));
+}
+
+function fetchNewsHistory() {
+    const url = currentFilter === 'ALL' ? '/news?limit=500' : `/news?ticker=${currentFilter}&limit=500`;
+    fetch(url)
+        .then(r => r.json())
+        .then(data => {
+            allNewsCache = data;
+            renderNews();
+        });
+}
+
+function setupSSE() {
+    const source = new EventSource('/news/stream');
+    source.onmessage = (event) => {
+        updateStatus(true);
+        const item = JSON.parse(event.data);
+        
+        // Prevent dupes
+        if(!allNewsCache.find(n => n.news_id === item.news_id && n.sentiment === item.sentiment)) {
+            // Remove old version if it was pending
+            allNewsCache = allNewsCache.filter(n => n.news_id !== item.news_id);
+            allNewsCache.unshift(item);
+            if(allNewsCache.length > 1000) allNewsCache.pop();
+            
+            if(currentFilter === 'ALL' || item.company_ticker === currentFilter) {
+                renderNews();
+                // Trigger flash animation
+                $('dirCard').style.borderColor = 'var(--paper)';
+                setTimeout(() => $('dirCard').style.borderColor = '', 500);
+            }
+            fetchSummary(); // Auto update totals on new data
+        }
+    };
+    source.onerror = () => updateStatus(false);
+}
+
+function updateScoreboard(total, pos, neg, neu, pen, avgConf) {
+    const totalClassified = pos + neg + neu;
+    
+    $('totalCount').textContent = total + pen;
+    $('st-pos').textContent = pos;
+    $('st-neg').textContent = neg;
+    $('st-neu').textContent = neu;
+    $('st-pen').textContent = pen;
+    $('avgConf').textContent = avgConf > 0 ? Math.round(avgConf * 100) + '%' : '—';
+    
+    // Percentages
+    const pUp = totalClassified ? (pos/totalClassified)*100 : 0;
+    const pDn = totalClassified ? (neg/totalClassified)*100 : 0;
+    const pHl = totalClassified ? (neu/totalClassified)*100 : 0;
+
+    $('probUp').style.width = pUp + '%';     $('pctUp').textContent = pUp.toFixed(1) + '%';
+    $('probDown').style.width = pDn + '%';   $('pctDown').textContent = pDn.toFixed(1) + '%';
+    $('probHold').style.width = pHl + '%';   $('pctHold').textContent = pHl.toFixed(1) + '%';
+
+    // Index
+    const posIndex = totalClassified ? ((pos + (neu*0.5)) / totalClassified)*100 : 50;
+    $('posIndex').textContent = posIndex.toFixed(1) + '%';
+    $('posBar').style.width = pUp + '%';
+    $('negCountLabel').textContent = 'Negative Break: ' + pDn.toFixed(1) + '%';
+
+    // Gauge (-1 to 1) mapped from index
+    const gauge = (posIndex - 50) / 50;
+    $('sentVal').textContent = (gauge > 0 ? '+' : '') + gauge.toFixed(2);
+    $('sentVal').className = 'sent-val ' + (gauge > 0.2 ? 'pos' : gauge < -0.2 ? 'neg' : 'neu');
+    $('sentThumb').style.left = Math.max(4, Math.min(96, posIndex)) + '%';
+    $('newsCountLabel').textContent = totalClassified + ' inferences recorded';
+    
+    // Dom trend
+    $('st-dom').textContent = pUp > pDn ? 'BULLISH' : (pDn > pUp ? 'BEARISH' : 'NEUTRAL');
+    $('st-dom').className = 'tech-val ' + (pUp > pDn ? 'pos' : (pDn > pUp ? 'neg' : 'neu'));
+}
+
+function renderNews() {
+    let feedHTML = '';
+    let histHTML = '';
+    
+    let filtered = allNewsCache;
+    if(currentFilter !== 'ALL') {
+        filtered = filtered.filter(n => n.company_ticker === currentFilter);
+    }
+    // Now apply sentiment filter so the Latest News Widget actively matches the user's explicit filter
+    if(currentSentFilter !== 'ALL') {
+        filtered = filtered.filter(n => n.sentiment === currentSentFilter);
+    }
+    
+    // Process top latest element for "Current Sentiment" view AFTER applying the sentiment filter
+    const latestClassified = filtered.find(n => n.sentiment);
+    if(latestClassified) {
+        let sd = latestClassified.sentiment;
+        $('dirCard').className = 'card dir-card ' + sd;
+        $('dirWrap').className = sd;
+        $('dirArrow').textContent = arrow(sd);
+        $('dirText').textContent = dirText(sd);
+        $('dirConf').textContent = latestClassified.confidence_score ? 'Confidence: ' + (latestClassified.confidence_score*100).toFixed(1) + '%' : '—';
+        $('statusDir').textContent = sd.toUpperCase();
+        
+        $('sigWrap').className = 'sig-wrap ' + sigClass(sd);
+        $('sigIcon').textContent = sigIcon(sd);
+        $('sigText').textContent = sigText(sd);
+        
+        let tapeData = filtered.slice(0, 10).map(n => `${n.company_ticker} ${n.sentiment?'['+n.sentiment.toUpperCase()+']':'[PENDING]'} ${n.title.substring(0,30)}...`).join(' • ');
+        $('tapeInner').textContent = tapeData + ' • ' + tapeData;
+    }
+
+    filtered.slice(0, 15).forEach(n => {
+        let sent = n.sentiment || 'pending';
+        let cls = sent === 'positive' ? 'positive' : sent === 'negative' ? 'negative' : sent === 'neutral' ? 'neutral' : 'pending';
+        let badge = sent === 'pending' ? 'INFERENCE PENDING' : `${(n.confidence_score*100).toFixed(0)}% CONF`;
+        
+        // Feed
+        feedHTML += `<div class="news-item ${cls}">
+            <div class="news-src"><span>${n.company_ticker} • ${(n.source_name || "rss").toUpperCase()}</span> <span style="color:var(--${cls==='pending'?'mist':cls==='positive'?'up':cls==='negative'?'down':'hold'})">${badge}</span></div>
+            <div style="color:var(--paper)">${n.title}</div>
+            ${n.reasoning ? `<div style="margin-top:4px;font-size:10px;color:var(--mist);font-style:italic">"${n.reasoning}"</div>` : ''}
+        </div>`;
+    });
+
+    filtered.filter(n => n.sentiment).slice(0, 30).forEach(n => {
+        let t = new Date(n.ingested_at).toLocaleTimeString();
+        let sc = n.sentiment === 'positive' ? 'pos' : n.sentiment === 'negative' ? 'neg' : 'neu';
+        histHTML += `<tr>
+            <td>${t}</td>
+            <td style="color:var(--paper)">${n.company_ticker}</td>
+            <td class="${sc}">${arrow(n.sentiment)} ${n.sentiment.toUpperCase()}</td>
+            <td>${(n.confidence_score*100).toFixed(1)}%</td>
+            <td style="color:var(--mist)">${(n.source_name || "rss").toUpperCase()}</td>
+        </tr>`;
+    });
+
+    $('newsFeed').innerHTML = feedHTML || '<div style="color:var(--mist);font-size:12px;font-family:\'Syne Mono\',monospace;">No news found.</div>';
+    $('histBody').innerHTML = histHTML;
+}
+
+init();
+</script>
+</body>
+</html>

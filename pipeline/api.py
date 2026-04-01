@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, HTMLResponse
 from pydantic import BaseModel
 import psycopg2
 import psycopg2.extras
@@ -14,7 +14,9 @@ import json
 import time
 
 load_dotenv(dotenv_path=Path(__file__).parent / ".env")
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - [%(levelname)s] - %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - [%(levelname)s] - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="News Intelligence API", version="1.0.0")
@@ -27,6 +29,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 def get_db():
     return psycopg2.connect(
         host=os.getenv("POSTGRES_HOST", "localhost"),
@@ -36,19 +39,34 @@ def get_db():
         port=os.getenv("POSTGRES_PORT", "5432"),
     )
 
+
 # ─── Models ──────────────────────────────────────────────────────────────────
+
 
 class HealthResponse(BaseModel):
     status: str
 
+
 # ─── Routes ──────────────────────────────────────────────────────────────────
+
+
+@app.get("/", response_class=HTMLResponse)
+def serve_dashboard():
+    with open(
+        Path(__file__).parent.parent / "ui" / "index.html", "r", encoding="utf-8"
+    ) as f:
+        return f.read()
+
 
 @app.get("/health", response_model=HealthResponse)
 def health():
     return {"status": "ok"}
 
+
 @app.get("/news")
-def get_news(ticker: Optional[str] = None, sentiment: Optional[str] = None, limit: int = 100):
+def get_news(
+    ticker: Optional[str] = None, sentiment: Optional[str] = None, limit: int = 100
+):
     """Returns today's news, optionally filtered by ticker or sentiment."""
     conn = get_db()
     cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -59,7 +77,7 @@ def get_news(ticker: Optional[str] = None, sentiment: Optional[str] = None, limi
             FROM live_news
             WHERE DATE(ingested_at AT TIME ZONE 'UTC') = CURRENT_DATE
         """
-        params = []
+        params: list[Any] = []
         if ticker:
             query += " AND company_ticker = %s"
             params.append(ticker.upper())
@@ -78,6 +96,7 @@ def get_news(ticker: Optional[str] = None, sentiment: Optional[str] = None, limi
     finally:
         cursor.close()
         conn.close()
+
 
 @app.get("/news/summary")
 def get_summary(ticker: Optional[str] = None):
@@ -111,11 +130,13 @@ def get_summary(ticker: Optional[str] = None):
         cursor.close()
         conn.close()
 
+
 @app.get("/news/stream")
 async def stream_news(ticker: Optional[str] = None):
     """Server-Sent Events endpoint for live UI streaming."""
+
     async def event_generator():
-        seen_ids = set()
+        seen_state = {}
         while True:
             try:
                 conn = get_db()
@@ -125,11 +146,11 @@ async def stream_news(ticker: Optional[str] = None):
                     FROM live_news
                     WHERE DATE(ingested_at AT TIME ZONE 'UTC') = CURRENT_DATE
                 """
-                params = []
+                params: list[Any] = []
                 if ticker:
                     query += " AND company_ticker = %s"
                     params.append(ticker.upper())
-                query += " ORDER BY ingested_at DESC LIMIT 50"
+                query += " ORDER BY ingested_at DESC LIMIT 1000"
                 cursor.execute(query, params)
                 rows = cursor.fetchall()
                 cursor.close()
@@ -137,8 +158,9 @@ async def stream_news(ticker: Optional[str] = None):
 
                 for row in rows:
                     nid = row["news_id"]
-                    if nid not in seen_ids:
-                        seen_ids.add(nid)
+                    curr_sent = row["sentiment"]
+                    if nid not in seen_state or seen_state[nid] != curr_sent:
+                        seen_state[nid] = curr_sent
                         yield f"data: {json.dumps(dict(row), default=str)}\n\n"
             except Exception:
                 pass
@@ -146,23 +168,28 @@ async def stream_news(ticker: Optional[str] = None):
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
+
 @app.get("/tickers")
 def get_tracked_tickers():
     """Returns list of tickers that have data today."""
     conn = get_db()
     cursor = conn.cursor()
     try:
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT DISTINCT company_ticker
             FROM live_news
             WHERE DATE(ingested_at AT TIME ZONE 'UTC') = CURRENT_DATE
             ORDER BY company_ticker;
-        """)
+        """
+        )
         return [row[0] for row in cursor.fetchall()]
     finally:
         cursor.close()
         conn.close()
 
+
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run("api:app", host="0.0.0.0", port=8000, reload=True)

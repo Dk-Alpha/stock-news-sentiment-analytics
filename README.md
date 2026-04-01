@@ -104,7 +104,7 @@ pip install -r ui\requirements.txt
 docker-compose -f infra\docker-compose.yml up -d
 
 # First time only — pull the LLM model
-docker exec -it ollama ollama pull llama3:8b
+docker exec -it ollama ollama pull llama3.2:latest
 ```
 
 ### 5. Initialize Database
@@ -154,3 +154,11 @@ python ui\ui.py                      # Terminal 6
 | `processed-news` | `stream_processor.py` | `llm_worker.py` |
 | `sentiment-results` | `llm_worker.py` | `storage_worker.py` |
 | `dead-letter-queue` | `llm_worker.py` | *(manual review)* |
+
+---
+
+## ⚡ Recent Pipeline Enhancements
+- **LLaMA 3.2 Migration**: Moved exclusively to the latest stable LLaMA 3.2 Ollama models. Prompt formatting was strictly locked into `{ "results": [{}] }` schema structures so large-batch inferences process flawlessly.
+- **SSE Real-Time Sync**: Rewired the WebSocket (`api.py`) state cache to natively emit dynamically shifting inferences over a 1000-article limit. The dashboard now tracks LLM inferences in live real-time without data stagnation.
+- **Dynamic UX State**: Overhauled the frontend macro-displays (`ui/index.html`) to proactively zero-out metrics depending strictly on active filter drop-downs. 
+- **Code Hardening**: Python backend formally refactored and auto-formatted via `black`, completely resolving Mypy strict-typing defects regarding psycopg2 queries.
