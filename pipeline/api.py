@@ -12,6 +12,7 @@ from typing import Optional
 import asyncio
 import json
 import time
+import yfinance as yf
 
 load_dotenv(dotenv_path=Path(__file__).parent / ".env")
 logging.basicConfig(
@@ -156,12 +157,31 @@ async def stream_news(ticker: Optional[str] = None):
                 cursor.close()
                 conn.close()
 
+                # Get Latest Tick Price from yfinance if ticker specified
+                latest_price = None
+                if ticker:
+                    try:
+                        ticker_data = await asyncio.to_thread(yf.Ticker, ticker)
+                        history = await asyncio.to_thread(ticker_data.history, period="1d", interval="1m")
+                        if not history.empty:
+                            latest_price = float(history['Close'].iloc[-1])
+                    except Exception as e:
+                        logger.error(f"Failed to fetch price for {ticker}: {e}")
+
                 for row in rows:
                     nid = row["news_id"]
                     curr_sent = row["sentiment"]
                     if nid not in seen_state or seen_state[nid] != curr_sent:
                         seen_state[nid] = curr_sent
-                        yield f"data: {json.dumps(dict(row), default=str)}\n\n"
+                        payload = dict(row)
+                        if latest_price:
+                            payload['stock_price'] = latest_price
+                        yield f"data: {json.dumps(payload, default=str)}\n\n"
+                    # Also send a heartbeat with price if no news state changed but we have price
+                    elif latest_price and row == rows[0]:
+                         payload = {"heartbeat": True, "stock_price": latest_price}
+                         yield f"data: {json.dumps(payload, default=str)}\n\n"
+                         
             except Exception:
                 pass
             await asyncio.sleep(5)

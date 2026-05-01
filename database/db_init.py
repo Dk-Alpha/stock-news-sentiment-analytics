@@ -41,10 +41,30 @@ def init_db():
         );
     """)
 
-    # We use a single table "live_news" since the sentiment uniquely maps to the news_id
-    # We will just UPSERT the sentiment when it arrives from the LLM worker.
+    # Create Historical News Table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS historical_news (
+            news_id VARCHAR(255) PRIMARY KEY,
+            source_name VARCHAR(255) NOT NULL,
+            company_ticker VARCHAR(50) NOT NULL,
+            title TEXT NOT NULL,
+            link TEXT,
+            published_at TIMESTAMP WITH TIME ZONE,
+            ingested_at TIMESTAMP WITH TIME ZONE,
+            sentiment VARCHAR(50),
+            confidence_score FLOAT,
+            reasoning TEXT
+        );
+    """)
 
-    logger.info("Database schema initialized.")
+    # We use a single table "live_news" since the sentiment uniquely maps to the news_id
+    # Create Indexes for massively accelerated analytical counting & sequential extraction
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_live_news_ingested_at ON live_news (ingested_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_live_news_composite ON live_news (company_ticker, sentiment);
+    """)
+
+    logger.info("Database schema initialized and securely indexed.")
     conn.commit()
     cursor.close()
     conn.close()
@@ -53,7 +73,15 @@ def clear_old_data():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    logger.info("Clearing old data (previous day) from database...")
+    logger.info("Archiving and clearing old data (previous day) from live database...")
+
+    cursor.execute("""
+        INSERT INTO historical_news
+        SELECT * FROM live_news
+        WHERE DATE(ingested_at AT TIME ZONE 'UTC') < CURRENT_DATE
+        ON CONFLICT (news_id) DO NOTHING;
+    """)
+    archived_rows = cursor.rowcount
 
     cursor.execute("""
         DELETE FROM live_news 
@@ -61,7 +89,7 @@ def clear_old_data():
     """)
     deleted_rows = cursor.rowcount
     
-    logger.info(f"Deleted {deleted_rows} stale records from previous days.")
+    logger.info(f"Archived {archived_rows} records and removed {deleted_rows} stale records from live.")
     conn.commit()
     cursor.close()
     conn.close()

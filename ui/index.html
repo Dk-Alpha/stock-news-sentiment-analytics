@@ -6,6 +6,7 @@
 <title>Live News Intelligence</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne+Mono&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 :root{
   --ink:#0b0f0e; --paper:#f0ece3; --cream:#e8e2d5;
@@ -187,12 +188,17 @@ footer{margin-top:22px;padding-top:14px;border-top:1px solid var(--slate);
       </div>
     </div>
   </div>
-  <!-- Signal -->
-  <div class="card">
-    <div class="lbl">Implied Signal</div>
-    <div class="sig-wrap sig-pending" id="sigWrap">
-      <div class="sig-icon" id="sigIcon">◈</div>
-      <div class="sig-text" id="sigText">HOLD</div>
+  <!-- Signal / Chart -->
+  <div class="card" style="position:relative; overflow:visible;">
+    <div class="lbl">Price Action Overlay</div>
+    <div style="position:absolute; top:10px; right:15px; text-align:right;">
+       <div class="sig-wrap sig-pending" id="sigWrap" style="min-height:30px; flex-direction:row;">
+          <div class="sig-icon" id="sigIcon" style="font-size:20px;">◈</div>
+          <div class="sig-text" id="sigText" style="font-size:14px;">HOLD</div>
+       </div>
+    </div>
+    <div style="margin-top:20px; width:100%; height:80px;">
+       <canvas id="priceChart"></canvas>
     </div>
   </div>
   <!-- Article Count -->
@@ -302,6 +308,20 @@ function sigClass(s){ return s==='positive'?'sig-positive':s==='negative'?'sig-n
 function dirText(d){ return d==='positive'?'BULLISH':d==='negative'?'BEARISH':'NEUTRAL'; }
 function sigText(d){ return d==='positive'?'BUY':d==='negative'?'SELL':'HOLD'; }
 
+let priceChart; // Chart.js instance
+function initChart() {
+    const ctx = $('priceChart').getContext('2d');
+    priceChart = new Chart(ctx, {
+        type: 'line',
+        data: { labels: [], datasets: [{ label: 'Price ($)', data: [], borderColor: '#d4a017', borderWidth: 2, pointRadius: 0, tension: 0.2 }] },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { x: { display: false }, y: { position: 'right', ticks:{color:'#b8b0a0', font:{family:'Syne Mono', size:9}}, grid:{color:'rgba(58,74,69,0.3)'} } }
+        }
+    });
+}
+
 // --- Initialization ---
 function init() {
     tickerSelect.innerHTML = '<option value="ALL">ALL TICKERS</option>';
@@ -310,6 +330,9 @@ function init() {
         $('headerTicker').textContent = currentFilter === 'ALL' ? 'GLOBAL' : currentFilter;
         fetchSummary();
         renderNews();
+        if(window.currentSSE) window.currentSSE.close();
+        priceChart.data.labels = []; priceChart.data.datasets[0].data = []; priceChart.update();
+        setupSSE();
     });
     sentSelect.addEventListener('change', (e) => {
         currentSentFilter = e.target.value;
@@ -319,9 +342,11 @@ function init() {
     fetchTickers();
     fetchSummary();
     fetchNewsHistory();
+    initChart();
     setupSSE();
     setInterval(fetchTickers, 30000);
-    setInterval(fetchSummary, 60000); // 1m poll for full summary diffs
+    setInterval(fetchSummary, 5000);      // Poll stats every 5s for live updates
+    setInterval(fetchNewsHistory, 10000); // Poll news history every 10s to pick up new Ollama inferences
 }
 
 function updateStatus(isOnline) {
@@ -359,11 +384,11 @@ function fetchSummary() {
             let sum_total = 0, sum_pos = 0, sum_neg = 0, sum_neu = 0;
             let sum_conf = 0;
             data.forEach(d => {
-                sum_total += d.total; sum_pos += d.positive; sum_neg += d.negative; sum_neu += d.neutral;
-                sum_conf += (d.avg_confidence * d.total);
+                sum_total += Number(d.total); sum_pos += Number(d.positive); sum_neg += Number(d.negative); sum_neu += Number(d.neutral);
+                sum_conf += (Number(d.avg_confidence) * Number(d.total));
             });
             let avg_conf = sum_total > 0 ? (sum_conf / sum_total) : 0;
-            
+
             // Mask summary parameters dynamically depending on Sentiment Filter UI
             if (currentSentFilter === 'positive') { sum_neg = 0; sum_neu = 0; sum_total = sum_pos; }
             if (currentSentFilter === 'negative') { sum_pos = 0; sum_neu = 0; sum_total = sum_neg; }
@@ -371,26 +396,47 @@ function fetchSummary() {
 
             const pending = allNewsCache.filter(n => (!n.sentiment && n.company_ticker === currentFilter) || (!n.sentiment && currentFilter === 'ALL')).length;
 
+            // Update status bar — show total articles including pending ones
+            $('statusTotal').textContent = sum_total + pending;
+
             updateScoreboard(sum_total, sum_pos, sum_neg, sum_neu, pending, avg_conf);
         }).catch(() => updateStatus(false));
 }
 
 function fetchNewsHistory() {
-    const url = currentFilter === 'ALL' ? '/news?limit=500' : `/news?ticker=${currentFilter}&limit=500`;
+    const url = currentFilter === 'ALL' ? '/news?limit=1000' : `/news?ticker=${currentFilter}&limit=1000`;
     fetch(url)
         .then(r => r.json())
         .then(data => {
-            allNewsCache = data;
+            // Merge: keep cache items not in fresh data, add/update fresh data items
+            const freshIds = new Set(data.map(n => n.news_id));
+            const kept = allNewsCache.filter(n => !freshIds.has(n.news_id));
+            allNewsCache = [...data, ...kept].slice(0, 1000);
             renderNews();
+            fetchSummary(); // Refresh stats whenever history is refreshed
         });
 }
 
 function setupSSE() {
-    const source = new EventSource('/news/stream');
-    source.onmessage = (event) => {
+    window.currentSSE = new EventSource(currentFilter === 'ALL' ? '/news/stream' : '/news/stream?ticker=' + currentFilter);
+    window.currentSSE.onmessage = (event) => {
         updateStatus(true);
-        const item = JSON.parse(event.data);
+        let item;
+        try { item = JSON.parse(event.data); } catch(e) { return; }
         
+        // Update Chart
+        if (item.stock_price) {
+            let timeStr = new Date().toLocaleTimeString();
+            priceChart.data.labels.push(timeStr);
+            priceChart.data.datasets[0].data.push(item.stock_price);
+            if(priceChart.data.labels.length > 20) {
+               priceChart.data.labels.shift();
+               priceChart.data.datasets[0].data.shift();
+            }
+            priceChart.update();
+        }
+        if (item.heartbeat) return;
+
         // Prevent dupes
         if(!allNewsCache.find(n => n.news_id === item.news_id && n.sentiment === item.sentiment)) {
             // Remove old version if it was pending
@@ -407,7 +453,7 @@ function setupSSE() {
             fetchSummary(); // Auto update totals on new data
         }
     };
-    source.onerror = () => updateStatus(false);
+    window.currentSSE.onerror = () => updateStatus(false);
 }
 
 function updateScoreboard(total, pos, neg, neu, pen, avgConf) {

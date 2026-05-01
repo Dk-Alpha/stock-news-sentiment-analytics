@@ -49,6 +49,95 @@ services:
     networks:
       - pipeline_net
 
+  api:
+    build:
+      context: ../pipeline
+    container_name: pipeline_api
+    depends_on:
+      - kafka
+      - postgres
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PASSWORD=CHANGE_ME
+      - POSTGRES_DB=news_pipeline
+      - POSTGRES_USER=pipeline_user
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    volumes:
+      - ../ui:/ui
+    ports:
+      - "8000:8000"
+    networks:
+      - pipeline_net
+
+  ingester:
+    build:
+      context: ../pipeline
+    container_name: pipeline_ingester
+    command: ["python", "ingester.py"]
+    depends_on:
+      - kafka
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    networks:
+      - pipeline_net
+
+  stream_processor:
+    build:
+      context: ../pipeline
+    container_name: pipeline_stream_processor
+    command: ["python", "stream_processor.py"]
+    depends_on:
+      - kafka
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    networks:
+      - pipeline_net
+
+  llm_worker:
+    build:
+      context: ../pipeline
+    container_name: pipeline_llm_worker
+    command: ["python", "llm_worker.py"]
+    depends_on:
+      - kafka
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      # Connect to host's Ollama natively from inside docker:
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+    networks:
+      - pipeline_net
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  storage_worker:
+    build:
+      context: ../pipeline
+    container_name: pipeline_storage_worker
+    command: ["python", "storage_worker.py"]
+    depends_on:
+      - kafka
+      - postgres
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PASSWORD=CHANGE_ME
+      - POSTGRES_DB=news_pipeline
+      - POSTGRES_USER=pipeline_user
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    networks:
+      - pipeline_net
+
+  alert_worker:
+    build:
+      context: ../pipeline
+    container_name: pipeline_alert_worker
+    command: ["python", "alert_worker.py"]
+    depends_on:
+      - kafka
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    networks:
+      - pipeline_net
+
 networks:
   pipeline_net:
     driver: bridge

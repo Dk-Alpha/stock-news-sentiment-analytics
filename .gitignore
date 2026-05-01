@@ -11,3 +11,11 @@ backups/
 *.log
 .DS_Store
 Thumbs.db
+*logs.txt
+*tail.txt
+*debug.txt
+*report.txt
+*status.txt
+llm_test.txt
+sql_dump.txt
+frontend/node_modules/

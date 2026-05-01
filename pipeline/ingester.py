@@ -43,13 +43,12 @@ def generate_hash(title, link, published):
     return hasher.hexdigest()
 
 
-async def fetch_rss(session, url):
+async def fetch_rss(session, url, fetch_type="rss"):
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) NewsIntelligenceBot/1.0"}
     try:
-        async with session.get(url, timeout=15) as response:
+        async with session.get(url, headers=headers, timeout=15) as response:
             if response.status == 200:
                 html = await response.text()
-                # Run Feedparser synchronously but we don't block the loop badly since it's fast
-                # Best practice is to run in thread but memory string parsing is quick
                 return feedparser.parse(html)
             else:
                 logger.warning(f"Error {response.status} fetching {url}")
@@ -60,8 +59,9 @@ async def fetch_rss(session, url):
 
 
 async def process_source(source, session, producer, seen_hashes):
-    logger.info(f"Polling source: {source['name']}")
-    feed = await fetch_rss(session, source["url"])
+    source_type = source.get("type", "rss")
+    logger.info(f"Polling {source_type} source: {source['name']}")
+    feed = await fetch_rss(session, source["url"], source_type)
     if not feed or not feed.entries:
         return
 

@@ -3,6 +3,14 @@ sources:
     url: "https://news.google.com/rss/search?q=Apple+stock"
     type: "rss"
     company_ticker: "AAPL"
+  - name: YahooFinance_MSFT
+    url: "https://finance.yahoo.com/rss/headline?s=MSFT"
+    type: "rss"
+    company_ticker: "MSFT"
+  - name: Reddit_WallStreetBets_TSLA
+    url: "https://www.reddit.com/r/wallstreetbets/search.rss?q=TSLA&restrict_sr=on&sort=new"
+    type: "rss"
+    company_ticker: "TSLA"
 
   - name: GoogleNews_Tesla
     url: "https://news.google.com/rss/search?q=Tesla+TSLA"
